@@ -144,7 +144,7 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 		int allocated = 0;
 		int prev_page = -1;
 		for(; i < NUM_PAGES && allocated < num_pages; i++){
-			if(_mem_stat[i].proc  != 0){
+			if(_mem_stat[i].proc  == 0){
 				_mem_stat[i].proc = proc->pid; // gan pid cho page
 				_mem_stat[i].index = i; // index cua page
 				_mem_stat[i].next = -1; // page cuoi cung
@@ -186,6 +186,12 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 
 	}
 	pthread_mutex_unlock(&mem_lock);
+
+
+
+
+
+
 	return ret_mem;
 }
 
