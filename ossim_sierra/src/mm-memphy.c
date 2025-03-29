@@ -158,14 +158,31 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
    return 0;
 }
 
+// giam sat noi dung physical memory
 int MEMPHY_dump(struct memphy_struct *mp)
 {
-  /*TODO dump memphy contnt mp->storage
+  /*TODO dump memphy content mp->storage
    *     for tracing the memory content
    */
-  
+
+   if(mp == NULL || mp->storage == NULL){
+      return -1;
+   }
+
+   printf("===== PHYSICAL MEMORY DUMP =====\n");
+   int i = 0;
+   for(; i<mp->maxsz; i++){
+      if(mp->storage[i] != 0){
+         printf("BYTE %08X: %d",i, mp->storage[i]);
+         // 08x: in duoi dang thap luc phan
+         // d: in duoi dang thap phan
+      }
+   }
+   printf("===== PHYSICAL MEMORY END-DUMP =====\n");
+
    return 0;
 }
+
 
 int MEMPHY_put_freefp(struct memphy_struct *mp, int fpn)
 {

@@ -71,11 +71,11 @@ struct framephy_struct {
 
 struct memphy_struct {
    /* Basic field of data and size */
-   BYTE *storage;
+   BYTE *storage; // byte = char
    int maxsz;
    
    /* Sequential device fields */ 
-   int rdmflg;
+   int rdmflg; // memory access is random or sequential
    int cursor; // con tro chi den vi tri read/write
 
    /* Management structure */
