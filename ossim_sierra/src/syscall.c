@@ -8,6 +8,7 @@
  * for the sole purpose of studying while attending the course CO2018.
  */
 
+ // syscalltbl.lst khi chay syscalltbl.sh voi 2 tham so 
 #include "syscall.h"
 #include "common.h"
 
@@ -31,6 +32,10 @@ int __sys_ni_syscall(struct pcb_t *caller, struct sc_regs *regs)
    /*
     * DUMMY systemcall
     */
+
+    // systemcall chua duoc trien khai 
+   printf("System call not implemented. Caller PID: %d, Syscall number: %u\n",
+      caller->pid, regs->orig_ax);
 
    return 0;
 }

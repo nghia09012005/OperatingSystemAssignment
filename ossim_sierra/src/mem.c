@@ -190,8 +190,6 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 
 
 
-
-
 	return ret_mem;
 }
 

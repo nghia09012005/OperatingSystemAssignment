@@ -7,7 +7,7 @@
 #define PAGING_MAX_SYMTBL_SZ 30
 
 typedef char BYTE;
-typedef uint32_t addr_t; // = unsigned int
+typedef uint32_t addr_t; 
 //typedef unsigned int uint32_t;
 
 struct pgn_t{

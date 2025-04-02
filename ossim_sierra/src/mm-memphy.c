@@ -179,7 +179,7 @@ int MEMPHY_dump(struct memphy_struct *mp)
       }
    }
    printf("===== PHYSICAL MEMORY END-DUMP =====\n");
-
+   printf("================================================================\n");
    return 0;
 }
 
