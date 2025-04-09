@@ -1,4 +1,3 @@
-
 #include "mem.h"
 #include "stdlib.h"
 #include "string.h"
@@ -6,7 +5,8 @@
 #include <stdio.h>
 
 // fix include
-#include <os-mm.h>
+#include "os-mm.h"
+#include "common.h"
 
 static BYTE _ram[RAM_SIZE];
 

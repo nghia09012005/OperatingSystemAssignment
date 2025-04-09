@@ -74,6 +74,8 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   /* TODO: commit the vmaid */
   // rgnode.vmaid
 
+
+
   if (get_free_vmrg_area(caller, vmaid, size, &rgnode) == 0)
   {
     caller->mm->symrgtbl[rgid].rg_start = rgnode.rg_start;
@@ -86,22 +88,34 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   }
 
   /* TODO get_free_vmrg_area FAILED handle the region management (Fig.6)*/
+  
 
   /* TODO retrive current vma if needed, current comment out due to compiler redundant warning*/
   /*Attempt to increate limit to get space */
-  //struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
+  struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
 
 
-  //int inc_sz = PAGING_PAGE_ALIGNSZ(size);
-  //int inc_limit_ret;
+  int inc_sz = PAGING_PAGE_ALIGNSZ(size);
+  int inc_limit_ret;
 
   /* TODO retrive old_sbrk if needed, current comment out due to compiler redundant warning*/
-  //int old_sbrk = cur_vma->sbrk;
+  int old_sbrk = cur_vma->sbrk;
 
   /* TODO INCREASE THE LIMIT as inovking systemcall 
    * sys_memap with SYSMEM_INC_OP 
    */
-  //struct sc_regs regs;
+
+  cur_vma->sbrk += 1;
+  rgnode.rg_start = old_sbrk;
+  rgnode.rg_end = old_sbrk + size;
+
+  caller->mm->symrgtbl[rgid].rg_start = rgnode.rg_start;
+  caller->mm->symrgtbl[rgid].rg_end = rgnode.rg_end;
+
+  *alloc_addr = rgnode.rg_start;
+
+  pthread_mutex_unlock(&mmvm_lock);
+  // struct sc_regs regs;
   //regs.a1 = ...
   //regs.a2 = ...
   //regs.a3 = ...
@@ -137,7 +151,31 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
     return -1;
 
   /* TODO: Manage the collect freed region to freerg_list */
+
+  // lay thong tin region tu sympletable
+  struct vm_rg_struct *rgnode = get_symrg_byid(caller->mm, rgid);
+  if(rgnode == NULL)
+    return -1;
   
+  // Tạo một bản sao của vùng nhớ để thêm vào danh sách freerg_list
+  struct vm_rg_struct *freerg = (struct vm_rg_struct *)malloc(sizeof(struct vm_rg_struct));
+  if (freerg == NULL)
+      return -1; 
+
+  freerg->rg_start = rgnode->rg_start;
+  freerg->rg_end = rgnode->rg_end;
+  freerg->rg_next = NULL;
+
+  // Thêm vùng nhớ vào danh sách freerg_list
+  if (enlist_vm_freerg_list(caller->mm, freerg) != 0)
+  {
+      free(freerg); // Giải phóng nếu không thêm được
+      return -1;
+  }
+
+    // Xóa thông tin vùng nhớ khỏi bảng ký hiệu
+    rgnode->rg_start = 0;
+    rgnode->rg_end = 0;
 
   /*enlist the obsoleted memory region */
   //enlist_vm_freerg_list();
@@ -155,8 +193,12 @@ int liballoc(struct pcb_t *proc, uint32_t size, uint32_t reg_index)
   /* TODO Implement allocation on vm area 0 */
   int addr;
 
+  if(__alloc(proc, 0, reg_index, size, &addr) == 0){
+    proc->regs[reg_index] = addr;
+  }
+  return 0;
   /* By default using vmaid = 0 */
-  return __alloc(proc, 0, reg_index, size, &addr);
+  // return __alloc(proc, 0, reg_index, size, &addr);
 }
 
 /*libfree - PAGING-based free a region memory
@@ -169,8 +211,12 @@ int libfree(struct pcb_t *proc, uint32_t reg_index)
 {
   /* TODO Implement free region */
 
+  if(__free(proc, 0, reg_index) == 0){
+    proc->regs[reg_index] = 0; 
+  }
+  return 0;
   /* By default using vmaid = 0 */
-  return __free(proc, 0, reg_index);
+  // return __free(proc, 0, reg_index);
 }
 
 /*pg_getpage - get the page in ram
@@ -435,6 +481,7 @@ int find_victim_page(struct mm_struct *mm, int *retpgn)
   struct pgn_t *pg = mm->fifo_pgn;
 
   /* TODO: Implement the theorical mechanism to find the victim page */
+
 
   free(pg);
 
