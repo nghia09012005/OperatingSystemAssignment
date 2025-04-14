@@ -32,9 +32,9 @@ void init_scheduler(void) {
 int queue_empty(void) {
 #ifdef MLQ_SCHED
     for (int prio = 0; prio < MAX_PRIO; prio++) {
-        if (!empty(&mlq_ready_queue[prio])) return -1;
+        if (!empty(&mlq_ready_queue[prio])) return 0;
     }
-    return 0;
+    return 1;
 #else
     return (empty(&ready_queue) && empty(&run_queue));
 #endif
@@ -47,16 +47,20 @@ struct pcb_t *get_mlq_proc(void) {
     struct pcb_t *proc = NULL;
     int start_prio = (curr_prio + 1) % MAX_PRIO;
     
+    // Try to find a process in the next priority level
     for (int i = 0; i < MAX_PRIO; i++) {
         int prio = (start_prio + i) % MAX_PRIO;
         if (slot_remaining[prio] > 0 && !empty(&mlq_ready_queue[prio])) {
             proc = dequeue(&mlq_ready_queue[prio]);
-            slot_remaining[prio]--;
-            curr_prio = prio;
-            break;
+            if (proc != NULL) {
+                slot_remaining[prio]--;
+                curr_prio = prio;
+                break;
+            }
         }
     }
     
+    // If no process found, reset priorities and try again
     if (proc == NULL) {
         curr_prio = -1;
         for (int i = 0; i < MAX_PRIO; i++) {
@@ -69,14 +73,20 @@ struct pcb_t *get_mlq_proc(void) {
 }
 
 void put_mlq_proc(struct pcb_t *proc) {
-    if (proc == NULL || proc->prio >= MAX_PRIO) return;
+    if (proc == NULL || proc->prio >= MAX_PRIO) {
+        printf("Invalid process or priority\n");
+        return;
+    }
     pthread_mutex_lock(&queue_lock);
     enqueue(&mlq_ready_queue[proc->prio], proc);
     pthread_mutex_unlock(&queue_lock);
 }
 
 void add_mlq_proc(struct pcb_t *proc) {
-    if (proc == NULL || proc->prio >= MAX_PRIO) return;
+    if (proc == NULL || proc->prio >= MAX_PRIO) {
+        printf("Invalid process or priority\n");
+        return;
+    }
     pthread_mutex_lock(&queue_lock);
     enqueue(&mlq_ready_queue[proc->prio], proc);
     pthread_mutex_unlock(&queue_lock);
@@ -88,69 +98,108 @@ struct pcb_t *get_proc(void) {
 
 void put_proc(struct pcb_t *proc) {
     if (proc == NULL) return;
+    
+    pthread_mutex_lock(&queue_lock);
+    
+    // Update process queue pointers
     proc->ready_queue = &ready_queue;
     proc->mlq_ready_queue = mlq_ready_queue;
     proc->running_list = &running_list;
     
-    pthread_mutex_lock(&queue_lock);
+    // Add to running list if space available
     if (running_list.size < MAX_QUEUE_SIZE) {
         enqueue(&running_list, proc);
+    } else {
+        printf("Running list is full, cannot add process %d\n", proc->pid);
     }
+    
     pthread_mutex_unlock(&queue_lock);
     
+    // Add to MLQ queue
     put_mlq_proc(proc);
 }
 
 void add_proc(struct pcb_t *proc) {
     if (proc == NULL) return;
+    
+    pthread_mutex_lock(&queue_lock);
+    
+    // Update process queue pointers
     proc->ready_queue = &ready_queue;
     proc->mlq_ready_queue = mlq_ready_queue;
     proc->running_list = &running_list;
     
-    pthread_mutex_lock(&queue_lock);
+    // Add to running list if space available
     if (running_list.size < MAX_QUEUE_SIZE) {
         enqueue(&running_list, proc);
+    } else {
+        printf("Running list is full, cannot add process %d\n", proc->pid);
     }
+    
     pthread_mutex_unlock(&queue_lock);
     
+    // Add to MLQ queue
     add_mlq_proc(proc);
 }
 #else
 struct pcb_t *get_proc(void) {
     pthread_mutex_lock(&queue_lock);
     struct pcb_t *proc = NULL;
+    
+    // Try ready queue first
     if (!empty(&ready_queue)) {
         proc = dequeue(&ready_queue);
-    } else if (!empty(&run_queue)) {
+    } 
+    // Then try run queue
+    else if (!empty(&run_queue)) {
         proc = dequeue(&run_queue);
     }
+    
     pthread_mutex_unlock(&queue_lock);
     return proc;
 }
 
 void put_proc(struct pcb_t *proc) {
     if (proc == NULL) return;
+    
+    pthread_mutex_lock(&queue_lock);
+    
+    // Update process queue pointers
     proc->ready_queue = &ready_queue;
     proc->running_list = &running_list;
-
-    pthread_mutex_lock(&queue_lock);
+    
+    // Add to running list if space available
     if (running_list.size < MAX_QUEUE_SIZE) {
         enqueue(&running_list, proc);
+    } else {
+        printf("Running list is full, cannot add process %d\n", proc->pid);
     }
+    
+    // Add to run queue
     enqueue(&run_queue, proc);
+    
     pthread_mutex_unlock(&queue_lock);
 }
 
 void add_proc(struct pcb_t *proc) {
     if (proc == NULL) return;
+    
+    pthread_mutex_lock(&queue_lock);
+    
+    // Update process queue pointers
     proc->ready_queue = &ready_queue;
     proc->running_list = &running_list;
-
-    pthread_mutex_lock(&queue_lock);
+    
+    // Add to running list if space available
     if (running_list.size < MAX_QUEUE_SIZE) {
         enqueue(&running_list, proc);
+    } else {
+        printf("Running list is full, cannot add process %d\n", proc->pid);
     }
+    
+    // Add to ready queue
     enqueue(&ready_queue, proc);
+    
     pthread_mutex_unlock(&queue_lock);
 }
 #endif

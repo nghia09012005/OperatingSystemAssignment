@@ -16,9 +16,11 @@
  */
 int MEMPHY_mv_csr(struct memphy_struct *mp, int offset)
 {
+   if (mp == NULL) return -1;
+   
    int numstep = 0;
-
    mp->cursor = 0;
+   
    while (numstep < offset && numstep < mp->maxsz)
    {
       /* Traverse sequentially */
@@ -169,7 +171,7 @@ int MEMPHY_dump(struct memphy_struct *mp)
       return -1;
    }
 
-   printf("===== PHYSICAL MEMORY DUMP =====\n");
+   
    int i = 0;
    for(; i<mp->maxsz; i++){
       if(mp->storage[i] != 0){
@@ -178,8 +180,7 @@ int MEMPHY_dump(struct memphy_struct *mp)
          // d: in duoi dang thap phan
       }
    }
-   printf("===== PHYSICAL MEMORY END-DUMP =====\n");
-   printf("================================================================\n");
+   
    return 0;
 }
 

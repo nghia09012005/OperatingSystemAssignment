@@ -230,16 +230,11 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 {
   uint32_t pte = mm->pgd[pgn];
 
-  if (!PAGING_PAGE_PRESENT(pte))
-  { /* Page is not online, make it actively living */
+  // Check if page is present using direct bit check
+  if ((pte & 0x80000000) == 0) { /* Page is not online, make it actively living */
     int vicpgn, swpfpn, tgtfpn; 
     int vicfpn;
     uint32_t vicpte;
-
-
-    //int tgtfpn = PAGING_PTE_SWP(pte);//the target frame storing our variable
-
-    /* TODO: Play with your paging theory here */
 
     /* Find victim page */
     find_victim_page(caller->mm, &vicpgn);
@@ -248,7 +243,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     /* Get free frame in MEMSWP */
     MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
 
-    /* TODO: Implement swap frame from MEMRAM to MEMSWP and vice versa*/
+    /* Implement swap frame from MEMRAM to MEMSWP and vice versa*/
     vicfpn = PAGING_FPN(vicpte);
     struct sc_regs regs;
     regs.a1 = vicfpn;
@@ -256,56 +251,21 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     regs.a3 = SYSMEM_SWP_OP;
     syscall(caller, 17, &regs);
 
-    // cap nhat pte(page table entry) thanh swap
-    pte_set_swap(&(mm->pgd[vicpgn]),0 ,swpfpn);
+    // Update PTE to mark as swapped
+    mm->pgd[vicpgn] = (vicpte & ~0x80000000) | (swpfpn << 5); // Clear present bit and set swap offset
 
-    // doc trang can vao ram 
+    // Read page into RAM
     MEMPHY_get_freefp(caller->mram, &tgtfpn);
-    int tgt_swpfpn = PAGING_PTE_SWP(pte);
+    int tgt_swpfpn = (pte >> 5) & 0x1FFFFF; // Extract swap offset
     regs.a1 = tgt_swpfpn;
     regs.a2 = tgtfpn;
     regs.a3 = SYSMEM_SWP_OP;
     syscall(caller, 17, &regs);
 
-    // cap nhat pte 
-    pte_set_fpn(&mm->pgd[pgn], tgtfpn);
-    mm->pgd[pgn] = PAGING_PAGE_PRESENT_SET(mm->pgd[pgn]);
+    // Update PTE with new frame number and set present bit
+    mm->pgd[pgn] = (tgtfpn & 0x1FFF) | 0x80000000; // Set frame number and present bit
 
-    /* TODO copy victim frame to swap 
-     * SWP(vicfpn <--> swpfpn)
-     * SYSCALL 17 sys_memmap 
-     * with operation SYSMEM_SWP_OP
-     */
-    //struct sc_regs regs;
-    //regs.a1 =...
-    //regs.a2 =...
-    //regs.a3 =..
-
-    /* SYSCALL 17 sys_memmap */
-
-    /* TODO copy target frame form swap to mem 
-     * SWP(tgtfpn <--> vicfpn)
-     * SYSCALL 17 sys_memmap
-     * with operation SYSMEM_SWP_OP
-     */
-    /* TODO copy target frame form swap to mem 
-    //regs.a1 =...
-    //regs.a2 =...
-    //regs.a3 =..
-    */
-
-    /* SYSCALL 17 sys_memmap */
-
-    /* Update page table */
-    //pte_set_swap() 
-    //mm->pgd;
-
-    /* Update its online status of the target page */
-    //pte_set_fpn() &
-    //mm->pgd[pgn];
-    //pte_set_fpn();
-
-    enlist_pgn_node(&caller->mm->fifo_pgn,pgn);
+    enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
   }
 
   *fpn = PAGING_FPN(mm->pgd[pgn]);
@@ -329,23 +289,14 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
   if (pg_getpage(mm, pgn, &fpn, caller) != 0)
     return -1; /* invalid page access */
 
-  /* TODO 
-   *  MEMPHY_read(caller->mram, phyaddr, data);
-   *  MEMPHY READ 
-   *  SYSCALL 17 sys_memmap with SYSMEM_IO_READ
-   */
-  int phyaddr= (fpn << PAGING_ADDR_FPN_LOBIT) | off;
+  int phyaddr = (fpn << PAGING_ADDR_FPN_LOBIT) | off;
   struct sc_regs regs;
   regs.a1 = SYSMEM_IO_READ;
   regs.a2 = phyaddr;
+  regs.a3 = 0;
 
-  /* SYSCALL 17 sys_memmap */
-
-  syscall(caller,17, &regs);
-
-  // Update data
-  // data = (BYTE)
-  *data= (BYTE)regs.a3;
+  syscall(caller, 17, &regs);
+  *data = (BYTE)regs.a3;
 
   return 0;
 }
@@ -366,22 +317,13 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
   if (pg_getpage(mm, pgn, &fpn, caller) != 0)
     return -1; /* invalid page access */
 
-  /* TODO
-   *  MEMPHY_write(caller->mram, phyaddr, value);
-   *  MEMPHY WRITE
-   *  SYSCALL 17 sys_memmap with SYSMEM_IO_WRITE
-   */
-  int phyaddr= (fpn << PAGING_ADDR_FPN_LOBIT) | off;
+  int phyaddr = (fpn << PAGING_ADDR_FPN_LOBIT) | off;
   struct sc_regs regs;
   regs.a1 = SYSMEM_IO_WRITE;
   regs.a2 = phyaddr;
   regs.a3 = value;
-  regs.orig_ax = 17;
 
-  /* SYSCALL 17 sys_memmap */
   syscall(caller, 17, &regs);
-  // Update data
-  // data = (BYTE) 
 
   return 0;
 }
