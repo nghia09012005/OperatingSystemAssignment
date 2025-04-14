@@ -269,7 +269,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 
     // cap nhat pte 
     pte_set_fpn(&mm->pgd[pgn], tgtfpn);
-    mm->pgd[pgn] = PAGING_PAGE_PRESENT(mm->pgd[pgn]);
+    mm->pgd[pgn] = PAGING_PAGE_PRESENT_SET(mm->pgd[pgn]);
 
     /* TODO copy victim frame to swap 
      * SWP(vicfpn <--> swpfpn)
@@ -418,6 +418,8 @@ int libread(
   int val = __read(proc, 0, source, offset, &data);
 
   /* TODO update result of reading action*/
+  *destination = (uint32_t)data;
+
   //destination 
 #ifdef IODUMP
   printf("read region=%d offset=%d value=%d\n", source, offset, data);
