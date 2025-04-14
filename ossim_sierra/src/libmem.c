@@ -249,7 +249,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
 
     /* TODO: Implement swap frame from MEMRAM to MEMSWP and vice versa*/
-    int vicfpn = PAGING_FPN(vicpte);
+    vicfpn = PAGING_FPN(vicpte);
     struct sc_regs regs;
     regs.a1 = vicfpn;
     regs.a2 = swpfpn;
@@ -269,7 +269,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 
     // cap nhat pte 
     pte_set_fpn(&mm->pgd[pgn], tgtfpn);
-    mm->pgd[pgn] = PAGING_PAGE_PRESENT_SET(mm->pgd[pgn]);
+    mm->pgd[pgn] = PAGING_PAGE_PRESENT(mm->pgd[pgn]);
 
     /* TODO copy victim frame to swap 
      * SWP(vicfpn <--> swpfpn)
@@ -322,7 +322,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
 {
   int pgn = PAGING_PGN(addr);
-  //int off = PAGING_OFFST(addr);
+  int off = PAGING_OFFST(addr);
   int fpn;
 
   /* Get the page to MEMRAM, swap from MEMSWAP if needed */
@@ -334,16 +334,18 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
    *  MEMPHY READ 
    *  SYSCALL 17 sys_memmap with SYSMEM_IO_READ
    */
-  // int phyaddr
-  //struct sc_regs regs;
-  //regs.a1 = ...
-  //regs.a2 = ...
-  //regs.a3 = ...
+  int phyaddr= (fpn << PAGING_ADDR_FPN_LOBIT) | off;
+  struct sc_regs regs;
+  regs.a1 = SYSMEM_IO_READ;
+  regs.a2 = phyaddr;
 
   /* SYSCALL 17 sys_memmap */
 
+  syscall(caller,17, &regs);
+
   // Update data
   // data = (BYTE)
+  *data= (BYTE)regs.a3;
 
   return 0;
 }
@@ -357,7 +359,7 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
 int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
 {
   int pgn = PAGING_PGN(addr);
-  //int off = PAGING_OFFST(addr);
+  int off = PAGING_OFFST(addr);
   int fpn;
 
   /* Get the page to MEMRAM, swap from MEMSWAP if needed */
@@ -369,14 +371,15 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
    *  MEMPHY WRITE
    *  SYSCALL 17 sys_memmap with SYSMEM_IO_WRITE
    */
-  // int phyaddr
-  //struct sc_regs regs;
-  //regs.a1 = ...
-  //regs.a2 = ...
-  //regs.a3 = ...
+  int phyaddr= (fpn << PAGING_ADDR_FPN_LOBIT) | off;
+  struct sc_regs regs;
+  regs.a1 = SYSMEM_IO_WRITE;
+  regs.a2 = phyaddr;
+  regs.a3 = value;
+  regs.orig_ax = 17;
 
   /* SYSCALL 17 sys_memmap */
-
+  syscall(caller, 17, &regs);
   // Update data
   // data = (BYTE) 
 
@@ -505,9 +508,12 @@ int find_victim_page(struct mm_struct *mm, int *retpgn)
   struct pgn_t *pg = mm->fifo_pgn;
 
   /* TODO: Implement the theorical mechanism to find the victim page */
+  if (pg == NULL)
+    return -1;  // No page to evict
 
-
-  free(pg);
+  *retpgn = pg->pgn;        // Step 1: Get the oldest page number
+  mm->fifo_pgn = pg->pg_next;  // Step 2: Remove it from FIFO queue
+  free(pg);                  // Step 3: Free the node
 
   return 0;
 }
@@ -531,10 +537,19 @@ int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_s
   newrg->rg_start = newrg->rg_end = -1;
 
   /* TODO Traverse on list of free vm region to find a fit space */
-  //while (...)
-  // ..
+  while (rgit != NULL) {
+    int space_size = rgit->rg_end - rgit->rg_start + 1;
 
-  return 0;
+    if (space_size >= size) {
+        newrg->rg_start = rgit->rg_start;
+        newrg->rg_end = rgit->rg_start + size - 1;
+        return 0;  // Found suitable region
+    }
+
+    rgit = rgit->rg_next;
+}
+
+  return -1;
 }
 
 //#endif
