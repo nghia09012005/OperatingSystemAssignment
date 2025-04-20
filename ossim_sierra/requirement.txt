@@ -1,0 +1,3 @@
+- đọc các file include để biết cấu trúc bài
+- đọc và fix các hàm trong các file sau: libmem.c, mem.c, mm-memphy.c, mm-vm.c, mm.c, queue.c, sched.c, sys_killall.c, syscall.c
+- chỉ sửa các hàm có comment TODO không xóa bất cứ comment nào và phải khớp với các hướng dẫn trong comment
