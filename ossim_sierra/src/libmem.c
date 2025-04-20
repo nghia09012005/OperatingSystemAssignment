@@ -116,12 +116,12 @@
    struct sc_regs regs;
    regs.a1 = SYSMEM_INC_OP;
    regs.a2 = vmaid;
-   regs.a3 = inc_sz; // size mở rộng
+   regs.a3 = inc_sz; 
    regs.orig_ax = 17;
-   
-   if (syscall(caller, regs.orig_ax, &regs) != 0) // nếu mở rộng không thành công
+
+   if (syscall(caller, regs.orig_ax, &regs) != 0) 
    {
-     regs.flags = -1; // failed
+     regs.flags = -1;
      pthread_mutex_unlock(&mmvm_lock);
      return -1;
    }
@@ -184,12 +184,12 @@
    int val = __alloc(proc, 0, reg_index, size, &addr);
  #ifdef IODUMP
    printf("===== PHYSICAL MEMORY AFTER ALLOCATION =====\n");
-   // printf("PID=%d - Region=%d - Address=%08ld - Size=%d byte\n", proc->pid, reg_index, addr * sizeof(uint32_t), size);
+  
    printf("PID=%d - Region=%d - Address=%08X - Size=%d byte\n", proc->pid, reg_index, addr, size);
  #ifdef PAGETBL_DUMP
-   print_pgtbl(proc, 0, -1); // print max TBL
+   print_pgtbl(proc, 0, -1); 
  #endif
-   // MEMPHY_dump(proc->mram);
+   
    for (int i = 0; i < PAGING_MAX_PGN; i++)
    {
      uint32_t pte = proc->mm->pgd[i];
@@ -241,37 +241,25 @@
   *
   */
  int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
- // Kiểm tra page có đang hiện diện trong RAM không => swap page nếu không có
+ 
  {
-   // pte: entry của page cần truy cập từ bảng trang (Page Table Entry)
-   uint32_t pte = mm->pgd[pgn]; // pgd: Page Table Directory, pgd[pgn] -> framenum (fpn)
+ 
+   uint32_t pte = mm->pgd[pgn]; 
  
    if (!PAGING_PAGE_PRESENT(pte))
-   // thực hiện thuật toán chọn victim page, gọi syscall để swap out/in, và cập nhật lại bảng trang
-   {             /* Page is not online, make it actively living */
-     int vicpgn; // số page của victim
-     int swpfpn; // frame trong swap để chứa dữ liệu của victim
-     int vicfpn; // frame vật lý của victim
+  
+   {            
+     int vicpgn; 
+     int swpfpn;
+     int vicfpn; 
      uint32_t vicpte;
  
-     int tgtfpn = PAGING_PTE_SWP(pte); // the target frame storing our variable (frame trong swap chứa dữ liệu cần lấy lại)
+     int tgtfpn = PAGING_PTE_SWP(pte); 
+
+     find_victim_page(caller->mm, &vicpgn); 
  
-     /* TODO: Play with your paging theory here */
-     /* Find victim page */
-     find_victim_page(caller->mm, &vicpgn); // chon page free
- 
-     /* Get free frame in MEMSWP */
-     // Lấy 1 frame trống trong swap để chứa victim page
      MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
  
-     /* TODO: Implement swap frame from MEMRAM to MEMSWP and vice versa*/
- 
-     // Swap victim frame từ RAM -> SWP, (Swap out): đưa dữ liệu của victim từ RAM -> SWAP
-     /* TODO copy victim frame to swap
-      * SWP(vicfpn <--> swpfpn)
-      * SYSCALL 17 sys_memmap
-      * with operation SYSMEM_SWP_OP
-      */
      vicpte = mm->pgd[vicpgn];
      vicfpn = PAGING_PTE_FPN(vicpte);
  
@@ -280,15 +268,7 @@
      regs.a2 = vicfpn;
      regs.a3 = swpfpn;
      regs.orig_ax = 17;
- 
-     /* SYSCALL 17 sys_memmap */
- 
-     /* TODO copy target frame form swap to mem
-      * SWP(tgtfpn <--> vicfpn)
-      * SYSCALL 17 sys_memmap
-      * with operation SYSMEM_SWP_OP
-      */
- 
+
      if (syscall(caller, regs.orig_ax, &regs) != 0)
      {
        regs.flags = -1; // failed
@@ -296,37 +276,25 @@
      }
  
      regs.flags = 0; // successful
+
  
-     // Swap in: lấy dữ liệu từ swap (target page) vào frame RAM vừa giải phóng
-     /* TODO copy target frame form swap to mem */
+     regs.a2 = tgtfpn; 
+     regs.a3 = vicfpn; 
  
-     regs.a2 = tgtfpn; // đang ở swap
-     regs.a3 = vicfpn; // nơi cần đưa vào RAM
- 
-     /* SYSCALL 17 sys_memmap */
+
      if (syscall(caller, regs.orig_ax, &regs) != 0)
      {
-       regs.flags = -1; // failed
+       regs.flags = -1;
        return -1;
      }
- 
-     regs.flags = 0; // successful
- 
-     /* Update page table */
-     // Update victim PTE: đã bị swap ra (swap out)
+     regs.flags = 0; 
      uint32_t swptyp = caller->active_mswp_id;
-     pte_set_swap(&vicpte, swptyp, swpfpn); // đánh dấu trang đã bị swap ra và frame swap đang lưu trang đó
+     pte_set_swap(&vicpte, swptyp, swpfpn); 
      mm->pgd[vicpgn] = vicpte;
  
-     /* Update its online status of the target page */
-     // Update target PTE: đã được swap vào RAM
-     // Update lại PTE của trang đang truy cập (present + frame mới)
-     // pte = vicpte; không làm mm->pgd[pgn] thay đổi
- 
-     // Update target PTE (pgn)
-     pte_set_fpn(&pte, vicfpn);   // RAM frame mới của page cần truy cập
-     PAGING_PTE_SET_PRESENT(pte); // Đánh dấu present
-     mm->pgd[pgn] = pte;          // Cập nhật lại PTE vào bảng trang thật
+     pte_set_fpn(&pte, vicfpn);   
+     PAGING_PTE_SET_PRESENT(pte); 
+     mm->pgd[pgn] = pte;        
  
      enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
    }
@@ -349,10 +317,10 @@
    int offst = PAGING_OFFST(addr);
    int fpn;
  
-   /* Get the page to MEMRAM, swap from MEMSWAP if needed */
+
    if (pg_getpage(mm, pgn, &fpn, caller) != 0)
    {
-     return -1; /* invalid page access */
+     return -1;
    }
  
    /* TODO

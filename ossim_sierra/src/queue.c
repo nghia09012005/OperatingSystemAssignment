@@ -21,7 +21,7 @@ struct pcb_t *dequeue(struct queue_t *q) {
 	if (q->size == 0)
 		return NULL;
 
-	// the higher the priority, the lower the value
+	
 	int min_priority_index = 0;
 	for (int i = 1; i < q->size; i++) {
 		if (q->proc[i]->priority < q->proc[min_priority_index]->priority) {

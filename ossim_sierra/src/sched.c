@@ -57,7 +57,7 @@ struct pcb_t *get_mlq_proc(void)
      */
 
     pthread_mutex_lock(&lock);
-    int i = 0; // Ly(14/04/2025)_edit : Remove "static"
+    int i = 0; 
     int check = 0;
     for (;; i = (i + 1) % MAX_PRIO)
     {
@@ -95,7 +95,7 @@ void add_mlq_proc(struct pcb_t *proc)
 {
     pthread_mutex_lock(&lock);
     enqueue(&mlq_ready_queue[proc->prio], proc);
-    // printf("Adding process PID: %d, PRIO: %d\n", proc->pid, proc->prio);
+   
     pthread_mutex_unlock(&lock);
 }
 

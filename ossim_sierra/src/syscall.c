@@ -32,10 +32,9 @@ int __sys_ni_syscall(struct pcb_t *caller, struct sc_regs *regs)
    /*
     * DUMMY systemcall
     */
-
-    // systemcall chua duoc trien khai 
-   printf("System call not implemented. Caller PID: %d, Syscall number: %u\n",
-      caller->pid, regs->orig_ax);
+ 
+   // printf("System call not implemented. Caller PID: %d, Syscall number: %u\n",
+   //    caller->pid, regs->orig_ax);
 
    return 0;
 }

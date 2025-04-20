@@ -3,6 +3,7 @@
 #include "string.h"
 #include <pthread.h>
 #include <stdio.h>
+#include "mm.h"
 
 static BYTE _ram[RAM_SIZE];
 

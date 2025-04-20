@@ -161,17 +161,7 @@
  
  int MEMPHY_dump(struct memphy_struct *mp)
  {
-    /*TODO dump memphy contnt mp->storage
-     *     for tracing the memory content
-     */
-    // TODO: 11/4/2025
-    //  for (int i = 0; i < mp->maxsz / 4; ++i)
-    //  {
-    //     if (mp->storage[i * 4] + mp->storage[i * 4 + 1] + mp->storage[i * 4 + 2] + mp->storage[i * 4 + 3] != 0)
-    //        printf("%08x: %02x%02x%02x%02x\n", i * 4, mp->storage[i * 4], mp->storage[i * 4 + 1], mp->storage[i * 4 + 2], mp->storage[i * 4 + 3]);
-    //  }
- 
-    // TODO: 16/4/2025
+  
     if (mp == NULL || mp->storage == NULL)
     {
        perror("memphy is not initialized.\n");
@@ -179,16 +169,15 @@
     }
  
     printf("===== PHYSICAL MEMORY DUMP =====\n");
-    // Duyệt qua toàn bộ bộ nhớ vật lý
+
     for (int i = 0; i < mp->maxsz; i++)
     {
        BYTE value = mp->storage[i];
        if (value != 0)
-       { // Chỉ in các byte khác 0 để giảm nhiễu
+       { 
           printf("BYTE %08X: %d\n", i, value);
        }
     }
- 
     printf("===== PHYSICAL MEMORY END-DUMP =====\n");
     return 0;
  }
@@ -219,7 +208,7 @@
  
     mp->rdmflg = (randomflg != 0) ? 1 : 0;
  
-    if (!mp->rdmflg) /* Not Ramdom acess device, then it serial device*/
+    if (!mp->rdmflg) 
        mp->cursor = 0;
  
     return 0;

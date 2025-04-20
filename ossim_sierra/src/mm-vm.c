@@ -66,8 +66,7 @@
    {
      return 0;
    }
-   /* TODO retrive current vma to obtain newrg, current comment out due to compiler redundant warning*/
-   // TODO: 11/04/2025
+ 
    struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
  
    if (!cur_vma)
@@ -76,14 +75,11 @@
      return 0;
    }
  
-   /* TODO: update the newrg boundary */
-   // TODO: 11/04/2025
+ 
    newrg->rg_start = cur_vma->sbrk;
-   // newrg->rg_end = newrg->rg_start + size;
-   // TODO: 16/4/2025
+
    newrg->rg_end = newrg->rg_start + alignedsz;
-   // printf("=== get_vm_area_node_at_brk ===\n");
-   // printf("sbrk = %ld (0x%08lX), alignedsz = %d\n", cur_vma->sbrk, cur_vma->sbrk, alignedsz);
+  
  
    return newrg;
  }
@@ -99,8 +95,7 @@
  {
    pthread_mutex_lock(&mem_lock);
  
-   /* TODO validate the planned memory area is not overlapped */
-   // TODO: 11/04/2025
+
    struct vm_area_struct *vma = caller->mm->mmap;
  
    while (!vma)
@@ -140,19 +135,12 @@
  
    struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
    int old_end = cur_vma->vm_end;
- 
-   /*Validate overlap of obtained region */
+
    if (validate_overlap_vm_area(caller, vmaid, area->rg_start, area->rg_end) < 0)
    {
-     return -1; /*Overlap and failed allocation */
+     return -1; 
    }
- 
-   /* TODO: Obtain the new vm area based on vmaid */
-   // TODO: 11/4/2025
-   // cur_vma->vm_end += inc_sz;
-   // cur_vma->sbrk += inc_sz;
- 
-   // TODO: 16/04/2025
+
    if (cur_vma != NULL && area != NULL)
    {
      cur_vma->sbrk = area->rg_end;
@@ -166,10 +154,8 @@
  
    if (vm_map_ram(caller, area->rg_start, area->rg_end, old_end, incnumpage, newrg) < 0)
    {
-     // printf("[vm_map_ram] Mapping region: %08lX -> %08lX (size %ld)\n",
-     //        area->rg_start, area->rg_end, area->rg_end - area->rg_start);
- 
-     return -1; /* Map the memory to MEMRAM */
+
+     return -1;
    }
  
    return 0;

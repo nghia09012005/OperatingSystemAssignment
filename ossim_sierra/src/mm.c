@@ -88,8 +88,7 @@
                      struct framephy_struct *frames, // list of the mapped frames
                      struct vm_rg_struct *ret_rg)    // return mapped region, the real mapped fp
  {                                                   // no guarantee all given pages are mapped
-   // struct framephy_struct *fpit;
-   // TODO: 11/04/2025
+  
    struct framephy_struct *fpit = malloc(sizeof(struct framephy_struct));
    int pgit = 0;
    int pgn = PAGING_PGN(addr);
@@ -102,8 +101,7 @@
     *      [addr to addr + pgnum*PAGING_PAGESZ
     *      in page table caller->mm->pgd[]
     */
-   /* Tracking for later page replacement activities (if needed)
-    * Enqueue new usage page */
+ 
    for (pgit = 0; pgit < pgnum; pgit++)
    {
      fpit = fpit->fp_next;
@@ -133,8 +131,7 @@
  
    for (pgit = 0; pgit < req_pgnum; pgit++)
    {
-     /* TODO: allocate the page */
-     // TODO: 11/04/2025
+    
      if (MEMPHY_get_freefp(caller->mram, &fpn) == 0)
      {
        newfp_str = (struct framephy_struct *)malloc(sizeof(struct framephy_struct));
@@ -170,7 +167,7 @@
          *frm_lst = newfp_str;
        }
  
-       // TODO: 11/04/2025 Tiến hành swap
+      
        int i = 0;
        if (MEMPHY_get_freefp(caller->active_mswp, &swpfpn) == 0)
        {
@@ -237,8 +234,7 @@
      return -1;
    }
  
-   /* it leaves the case of memory is enough but half in ram, half in swap
-    * do the swaping all to swapper to get the all in ram */
+ 
    vmap_page_range(caller, mapstart, incpgnum, frm_lst, ret_rg);
  
    return 0;
@@ -279,20 +275,18 @@
  
    mm->pgd = malloc(PAGING_MAX_PGN * sizeof(uint32_t));
  
-   /* By default the owner comes with at least one vma */
+   
    vma0->vm_id = 1;
    vma0->vm_start = 0;
    vma0->vm_end = vma0->vm_start;
    vma0->sbrk = vma0->vm_start;
    struct vm_rg_struct *first_rg = init_vm_rg(vma0->vm_start, vma0->vm_end);
    enlist_vm_rg_node(&vma0->vm_freerg_list, first_rg);
-   /* TODO update VMA0 next */
-   // TODO: 11/04/2025
+ 
    vma0->vm_next = NULL;
-   /* Point vma owner backward */
+
    vma0->vm_mm = mm;
-   /* TODO: update mmap */
-   // TODO: 11/04/2025
+
    mm->mmap = vma0;
  
    return 0;

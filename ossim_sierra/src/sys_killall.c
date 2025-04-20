@@ -35,19 +35,10 @@
          i++;
      }
      printf("The procname retrieved from memregionid %d is \"%s\"\n", memrg, proc_name);
+
  
-     /* TODO: Traverse proclist to terminate the proc
-      *       stcmp to check the process match proc_name
-      */
- 
-     // caller->running_list
-     // caller->mlq_ready_queue
- 
-     /* TODO Maching and terminating
-      *       all processes with given
-      *        name in var proc_name
-      */
-     // Duyệt qua MLQ
+    
+    
      for (int prio = 0; prio < MAX_PRIO; prio++)
      {
          struct queue_t *queue = &caller->mlq_ready_queue[prio];
@@ -74,12 +65,12 @@
                      queue->proc[j] = queue->proc[j + 1];
                  }
                  queue->size--;
-                 size--; // cập nhật lại size
-                 i--;    // kiểm tra lại vị trí hiện tại (do bị dồn phần tử)
+                 size--; 
+                 i--;    
              }
          }
      }
-     // Duyệt qua running_list
+
      if (caller->running_list != NULL)
      {
          int size = caller->running_list->size;
@@ -103,10 +94,10 @@
                  {
                      caller->running_list->proc[j] = caller->running_list->proc[j + 1];
                  }
-                 caller->running_list->proc[size - 1] = NULL; // Đảm bảo phần tử cuối là NULL
+                 caller->running_list->proc[size - 1] = NULL; 
                  caller->running_list->size--;
                  size--;
-                 i--; // Kiểm tra lại vị trí hiện tại
+                 i--; 
              }
          }
      }
@@ -114,14 +105,3 @@
      return 0;
  }
  
- /* Trả lời câu hỏi:
- Question: What is the mechanism to pass a complex argument to a system call using the limited registers?
- 
- Ans:
- Do có ít thanh ghi a0, a1..., đối số phức tạp nên không thể truyền trực tiếp (pass the parameters in registers)
- mà phải truyền tham chiếu (Parameters stored in a block, or table, in memory, and address of block
- passed as a parameter in a register)
- 
- Địa chỉ này sẽ được nạp vào 1 register (ví dụ như a1),
- system call sẽ nhận địa chỉ và truy xuất dữ liệu bằng cách đọc từ vùng nhớ (thông qua libread())
- */
