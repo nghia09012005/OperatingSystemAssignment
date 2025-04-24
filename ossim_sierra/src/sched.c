@@ -51,35 +51,30 @@ void init_scheduler(void)
  */
 struct pcb_t *get_mlq_proc(void)
 {
+    // Thêm hai biến static để lưu trạng thái giữa các lần gọi
+    static int current_prio = 0;     // Mức ưu tiên hiện tại đang xét
+    static int current_slot = 0;     // Số slot đã sử dụng cho mức current_prio
+
     struct pcb_t *proc = NULL;
     /*TODO: get a process from PRIORITY [ready_queue].
      * Remember to use lock to protect the queue.
      */
 
     pthread_mutex_lock(&lock);
-    int i = 0; 
-    int check = 0;
-    for (;; i = (i + 1) % MAX_PRIO)
-    {
-        if (slot[i] == 0)
-        {
-            slot[i] = MAX_PRIO - i;
-            check = 0;
-            continue;
-        }
-        if (empty(&mlq_ready_queue[i]))
-        {
-            check++;
-            if (check == MAX_PRIO)
+    int attempts = 0;
+    while (attempts < MAX_PRIO) {
+        if (!empty(&mlq_ready_queue[current_prio])) {
+            if (current_slot < slot[current_prio]) {
+                current_slot++;
+                proc = dequeue(&mlq_ready_queue[current_prio]);
                 break;
-            continue;
+            } else {
+                current_slot = 0;
+            }
         }
-        check = 0;
-        slot[i]--;
-        proc = dequeue(&mlq_ready_queue[i]);
-        break;
+        current_prio = (current_prio + 1) % MAX_PRIO;
+        attempts++;
     }
-
     pthread_mutex_unlock(&lock);
     return proc;
 }
