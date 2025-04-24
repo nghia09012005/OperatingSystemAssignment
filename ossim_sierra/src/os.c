@@ -141,57 +141,34 @@ static void * ld_routine(void * args) {
 }
 
 static void read_config(const char * path) {
-	FILE * file;
-	if ((file = fopen(path, "r")) == NULL) {
-		printf("Cannot find configure file at %s\n", path);
-		exit(1);
-	}
-	fscanf(file, "%d %d %d\n", &time_slot, &num_cpus, &num_processes);
-	ld_processes.path = (char**)malloc(sizeof(char*) * num_processes);
-	ld_processes.start_time = (unsigned long*)
-		malloc(sizeof(unsigned long) * num_processes);
-#ifdef MM_PAGING
-	int sit;
-#ifdef MM_FIXED_MEMSZ
-	/* We provide here a back compatible with legacy OS simulatiom config file
-         * In which, it have no addition config line for Mema, keep only one line
-	 * for legacy info 
-         *  [time slice] [N = Number of CPU] [M = Number of Processes to be run]
-         */
-        memramsz    =  0x100000;
-        memswpsz[0] = 0x1000000;
-	for(sit = 1; sit < PAGING_MAX_MMSWP; sit++)
-		memswpsz[sit] = 0;
-#else
-	/* Read input config of memory size: MEMRAM and upto 4 MEMSWP (mem swap)
-	 * Format: (size=0 result non-used memswap, must have RAM and at least 1 SWAP)
-	 *        MEM_RAM_SZ MEM_SWP0_SZ MEM_SWP1_SZ MEM_SWP2_SZ MEM_SWP3_SZ
-	*/
-	fscanf(file, "%d\n", &memramsz);
-	for(sit = 0; sit < PAGING_MAX_MMSWP; sit++)
-		fscanf(file, "%d", &(memswpsz[sit])); 
-
-       fscanf(file, "\n"); /* Final character */
-#endif
-#endif
-
+    FILE * file;
+    if ((file = fopen(path, "r")) == NULL) {
+        printf("Cannot find configure file at %s\n", path);
+        exit(1);
+    }
+    fscanf(file, "%d %d %d\n", &time_slot, &num_cpus, &num_processes);
+    printf("Debug: time_slot=%d, num_cpus=%d, num_processes=%d\n", time_slot, num_cpus, num_processes);
+    ld_processes.path = (char**)malloc(sizeof(char*) * num_processes);
+    ld_processes.start_time = (unsigned long*)malloc(sizeof(unsigned long) * num_processes);
 #ifdef MLQ_SCHED
-	ld_processes.prio = (unsigned long*)
-		malloc(sizeof(unsigned long) * num_processes);
+    ld_processes.prio = (unsigned long*)malloc(sizeof(unsigned long) * num_processes);
 #endif
-	int i;
-	for (i = 0; i < num_processes; i++) {
-		ld_processes.path[i] = (char*)malloc(sizeof(char) * 100);
-		ld_processes.path[i][0] = '\0';
-		strcat(ld_processes.path[i], "input/proc/");
-		char proc[100];
+    int i;
+    for (i = 0; i < num_processes; i++) {
+        ld_processes.path[i] = (char*)malloc(sizeof(char) * 100);
+        ld_processes.path[i][0] = '\0';
+        strcat(ld_processes.path[i], "input/proc/");
+        char proc[100];
 #ifdef MLQ_SCHED
-		fscanf(file, "%lu %s %lu\n", &ld_processes.start_time[i], proc, &ld_processes.prio[i]);
+        fscanf(file, "%lu %s %lu\n", &ld_processes.start_time[i], proc, &ld_processes.prio[i]);
 #else
-		fscanf(file, "%lu %s\n", &ld_processes.start_time[i], proc);
+        fscanf(file, "%lu %s\n", &ld_processes.start_time[i], proc);
 #endif
-		strcat(ld_processes.path[i], proc);
-	}
+        printf("Debug: Read process %d: start_time=%lu, proc=%s, prio=%lu\n", i, ld_processes.start_time[i], proc, ld_processes.prio[i]);
+        strcat(ld_processes.path[i], proc);
+        printf("Debug: Full path for process %d: %s\n", i, ld_processes.path[i]);
+    }
+    fclose(file);
 }
 
 int main(int argc, char * argv[]) {
