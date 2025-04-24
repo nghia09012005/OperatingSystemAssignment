@@ -17,22 +17,21 @@ void enqueue(struct queue_t *q, struct pcb_t *proc) {
 
 struct pcb_t *dequeue(struct queue_t *q) {
     if (q == NULL)
-		return NULL;
-	if (q->size == 0)
-		return NULL;
+        return NULL;
+    if (q->size == 0)
+        return NULL;
 
-	
-	int min_priority_index = 0;
-	for (int i = 1; i < q->size; i++) {
-		if (q->proc[i]->priority < q->proc[min_priority_index]->priority) {
-			min_priority_index = i;
-		}
-	}
-	struct pcb_t *proc = q->proc[min_priority_index];
-	for (int i = min_priority_index; i < q->size - 1; i++) {
-		q->proc[i] = q->proc[i + 1];
-	}
-	q->size--;
-	q->proc[q->size] = NULL;
-	return proc;
+    int min_prio_index = 0;
+    for (int i = 1; i < q->size; i++) {
+        if (q->proc[i]->prio < q->proc[min_prio_index]->prio) {
+            min_prio_index = i;
+        }
+    }
+    struct pcb_t *proc = q->proc[min_prio_index];
+    for (int i = min_prio_index; i < q->size - 1; i++) {
+        q->proc[i] = q->proc[i + 1];
+    }
+    q->size--;
+    q->proc[q->size] = NULL;
+    return proc;
 }

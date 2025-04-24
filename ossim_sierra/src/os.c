@@ -146,8 +146,11 @@ static void read_config(const char * path) {
         printf("Cannot find configure file at %s\n", path);
         exit(1);
     }
-    fscanf(file, "%d %d %d\n", &time_slot, &num_cpus, &num_processes);
-    printf("Debug: time_slot=%d, num_cpus=%d, num_processes=%d\n", time_slot, num_cpus, num_processes);
+    if (fscanf(file, "%d %d %d\n", &time_slot, &num_cpus, &num_processes) != 3) {
+        printf("Error: Failed to read time_slot, num_cpus, num_processes from config file\n");
+        fclose(file);
+        exit(1);
+    }
     ld_processes.path = (char**)malloc(sizeof(char*) * num_processes);
     ld_processes.start_time = (unsigned long*)malloc(sizeof(unsigned long) * num_processes);
 #ifdef MLQ_SCHED
@@ -160,13 +163,19 @@ static void read_config(const char * path) {
         strcat(ld_processes.path[i], "input/proc/");
         char proc[100];
 #ifdef MLQ_SCHED
-        fscanf(file, "%lu %s %lu\n", &ld_processes.start_time[i], proc, &ld_processes.prio[i]);
+        if (fscanf(file, "%lu %s %lu\n", &ld_processes.start_time[i], proc, &ld_processes.prio[i]) != 3) {
+            printf("Error: Failed to read process %d from config file\n", i);
+            fclose(file);
+            exit(1);
+        }
 #else
-        fscanf(file, "%lu %s\n", &ld_processes.start_time[i], proc);
+        if (fscanf(file, "%lu %s\n", &ld_processes.start_time[i], proc) != 2) {
+            printf("Error: Failed to read process %d from config file\n", i);
+            fclose(file);
+            exit(1);
+        }
 #endif
-        printf("Debug: Read process %d: start_time=%lu, proc=%s, prio=%lu\n", i, ld_processes.start_time[i], proc, ld_processes.prio[i]);
         strcat(ld_processes.path[i], proc);
-        printf("Debug: Full path for process %d: %s\n", i, ld_processes.path[i]);
     }
     fclose(file);
 }
