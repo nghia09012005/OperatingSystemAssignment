@@ -51,32 +51,40 @@ void init_scheduler(void)
  */
 struct pcb_t *get_mlq_proc(void)
 {
-    // Thêm hai biến static để lưu trạng thái giữa các lần gọi
-    static int current_prio = 0;     // Mức ưu tiên hiện tại đang xét
-    static int current_slot = 0;     // Số slot đã sử dụng cho mức current_prio
-
     struct pcb_t *proc = NULL;
+    static int current_slot[MAX_PRIO] = {0}; // Số slot đã sử dụng cho mỗi mức priority
     /*TODO: get a process from PRIORITY [ready_queue].
      * Remember to use lock to protect the queue.
      */
 
     pthread_mutex_lock(&lock);
-    int attempts = 0;
-    while (attempts < MAX_PRIO) {
-        if (!empty(&mlq_ready_queue[current_prio])) {
-            if (current_slot < slot[current_prio]) {
-                current_slot++;
-                proc = dequeue(&mlq_ready_queue[current_prio]);
-                break;
-            } else {
-                current_slot = 0;
-            }
+    
+    // Tìm mức priority thấp nhất (ưu tiên cao nhất) có process trong hàng đợi
+    int highest_prio = -1;
+    for (int prio = 0; prio < MAX_PRIO; prio++) {
+        if (!empty(&mlq_ready_queue[prio])) {
+            highest_prio = prio;
+            break;
         }
-        current_prio = (current_prio + 1) % MAX_PRIO;
-        attempts++;
     }
+
+    // Nếu không tìm thấy process nào, trả về NULL
+    if (highest_prio == -1) {
+        pthread_mutex_unlock(&lock);
+        return NULL;
+    }
+
+    // Kiểm tra số slot đã sử dụng cho mức priority cao nhất
+    if (current_slot[highest_prio] < slot[highest_prio]) {
+        current_slot[highest_prio]++;
+        proc = dequeue(&mlq_ready_queue[highest_prio]);
+    } else {
+        current_slot[highest_prio] = 0; // Reset slot để tiếp tục Round Robin
+        proc = dequeue(&mlq_ready_queue[highest_prio]);
+    }
+
     pthread_mutex_unlock(&lock);
-    return proc;
+    return proc;    
 }
 
 void put_mlq_proc(struct pcb_t *proc)
