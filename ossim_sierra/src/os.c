@@ -147,9 +147,39 @@ static void read_config(const char * path) {
         exit(1);
     }
     fscanf(file, "%d %d %d\n", &time_slot, &num_cpus, &num_processes);
-    printf("Debug: time_slot=%d, num_cpus=%d, num_processes=%d\n", time_slot, num_cpus, num_processes);
+    // printf("Debug: time_slot=%d, num_cpus=%d, num_processes=%d\n", time_slot, num_cpus, num_processes);
     ld_processes.path = (char**)malloc(sizeof(char*) * num_processes);
     ld_processes.start_time = (unsigned long*)malloc(sizeof(unsigned long) * num_processes);
+
+	//  for testing mlq_paging
+// 	#ifdef MM_PAGING
+// 	int sit;
+// #ifdef MM_FIXED_MEMSZ
+// 	/* We provide here a back compatible with legacy OS simulatiom config file
+//          * In which, it have no addition config line for Mema, keep only one line
+// 	 * for legacy info 
+//          *  [time slice] [N = Number of CPU] [M = Number of Processes to be run]
+//          */
+//         memramsz    =  0x100000;
+//         memswpsz[0] = 0x1000000;
+// 	for(sit = 1; sit < PAGING_MAX_MMSWP; sit++)
+// 		memswpsz[sit] = 0;
+// #else
+// 	/* Read input config of memory size: MEMRAM and upto 4 MEMSWP (mem swap)
+// 	 * Format: (size=0 result non-used memswap, must have RAM and at least 1 SWAP)
+// 	 *        MEM_RAM_SZ MEM_SWP0_SZ MEM_SWP1_SZ MEM_SWP2_SZ MEM_SWP3_SZ
+// 	*/
+// 	fscanf(file, "%d\n", &memramsz);
+// 	for(sit = 0; sit < PAGING_MAX_MMSWP; sit++)
+// 		fscanf(file, "%d", &(memswpsz[sit])); 
+
+//        fscanf(file, "\n"); /* Final character */
+// #endif
+// #endif
+
+
+
+
 #ifdef MLQ_SCHED
     ld_processes.prio = (unsigned long*)malloc(sizeof(unsigned long) * num_processes);
 #endif
@@ -164,9 +194,9 @@ static void read_config(const char * path) {
 #else
         fscanf(file, "%lu %s\n", &ld_processes.start_time[i], proc);
 #endif
-        printf("Debug: Read process %d: start_time=%lu, proc=%s, prio=%lu\n", i, ld_processes.start_time[i], proc, ld_processes.prio[i]);
+        // printf("Debug: Read process %d: start_time=%lu, proc=%s, prio=%lu\n", i, ld_processes.start_time[i], proc, ld_processes.prio[i]);
         strcat(ld_processes.path[i], proc);
-        printf("Debug: Full path for process %d: %s\n", i, ld_processes.path[i]);
+        // printf("Debug: Full path for process %d: %s\n", i, ld_processes.path[i]);
     }
     fclose(file);
 }

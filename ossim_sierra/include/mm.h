@@ -1,6 +1,5 @@
 #ifndef MM_H
 
-
 #include "bitops.h"
 #include "common.h"
 
